@@ -2,6 +2,7 @@ package framework.util;
 
 import framework.annotations.Controller;
 import framework.annotations.UrlMapping;
+import framework.models.UrlMethod;
 
 import java.io.File;
 import java.lang.annotation.Annotation;
@@ -44,20 +45,21 @@ public class ClasseUtilitaire {
         return result;
     }
 
-    public static Map<String, Map<String, Method>> getUrlMappingMap(String basePackage) {
-        Map<String, Map<String, Method>> controllerMap = new HashMap<>();
+    public static Map<String, Map<UrlMethod, Method>> getUrlMappingMap(String basePackage) {
+        Map<String, Map<UrlMethod, Method>> controllerMap = new HashMap<>();
         List<Class<?>> allClasses = getClassesInPackage(basePackage);
         List<Class<?>> controllerClasses = getAnnotatedClasses(allClasses, Controller.class);
 
         for (Class<?> clazz : controllerClasses) {
             Controller controllerAnn = clazz.getAnnotation(Controller.class);
             String controllerName = controllerAnn.value();
-            Map<String, Method> methodMap = new HashMap<>();
+            Map<UrlMethod, Method> methodMap = new HashMap<>();
 
             for (Method method : clazz.getDeclaredMethods()) {
                 UrlMapping urlAnn = method.getAnnotation(UrlMapping.class);
                 if (urlAnn != null) {
-                    methodMap.put(urlAnn.value(), method);
+                    UrlMethod key = new UrlMethod(urlAnn.value(), urlAnn.method());
+                    methodMap.put(key, method);
                 }
             }
 

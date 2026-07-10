@@ -1,6 +1,7 @@
 package framework.servlet;
 
 import framework.annotations.Controller;
+import framework.models.UrlMethod;
 import framework.util.ClasseUtilitaire;
 
 import jakarta.servlet.ServletConfig;
@@ -21,7 +22,7 @@ public class FrontControllerServlet extends HttpServlet {
     private static final String CONTROLLER_PACKAGE_INIT_PARAM = "controllerPackage";
     private static final String DEFAULT_CONTROLLER_PACKAGE = "controller";
 
-    private Map<String, Map<String, Method>> urlMappingMap;
+    private Map<String, Map<UrlMethod, Method>> urlMappingMap;
     private List<Class<?>> controllerClasses;
 
     @Override
@@ -69,15 +70,17 @@ public class FrontControllerServlet extends HttpServlet {
 
         out.println("<p>Requested URI: " + requestURI + "</p>");
         out.println("<p>Path info after servlet: " + pathInfo + "</p>");
+        out.println("<p>HTTP method: " + req.getMethod() + "</p>");
 
+        UrlMethod key = new UrlMethod(pathInfo, req.getMethod());
         Method method = null;
         String controllerName = null;
         boolean found = false;
-        for (Map.Entry<String, Map<String, Method>> entry : urlMappingMap.entrySet()) {
+        for (Map.Entry<String, Map<UrlMethod, Method>> entry : urlMappingMap.entrySet()) {
             String ctrlName = entry.getKey();
-            Map<String, Method> methodMap = entry.getValue();
-            if (methodMap.containsKey(pathInfo)) {
-                method = methodMap.get(pathInfo);
+            Map<UrlMethod, Method> methodMap = entry.getValue();
+            if (methodMap.containsKey(key)) {
+                method = methodMap.get(key);
                 controllerName = ctrlName;
                 found = true;
                 break;
@@ -96,12 +99,12 @@ public class FrontControllerServlet extends HttpServlet {
                 e.printStackTrace(out);
             }
         } else {
-            out.println("<h3>No mapping found for URL: " + pathInfo + "</h3>");
+            out.println("<h3>No mapping found for " + req.getMethod() + " " + pathInfo + "</h3>");
             out.println("<p>Available mappings:</p>");
             out.println("<ul>");
-            for (Map.Entry<String, Map<String, Method>> entry : urlMappingMap.entrySet()) {
+            for (Map.Entry<String, Map<UrlMethod, Method>> entry : urlMappingMap.entrySet()) {
                 String ctrl = entry.getKey();
-                for (Map.Entry<String, Method> mEntry : entry.getValue().entrySet()) {
+                for (Map.Entry<UrlMethod, Method> mEntry : entry.getValue().entrySet()) {
                     out.println("<li>" + ctrl + " -> " + mEntry.getKey() + " (method: " + mEntry.getValue().getName() + ")</li>");
                 }
             }
