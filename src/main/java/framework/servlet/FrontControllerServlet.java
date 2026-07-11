@@ -1,6 +1,7 @@
 package framework.servlet;
 
 import framework.annotations.Controller;
+import framework.models.ModelAndView;
 import framework.models.UrlMethod;
 import framework.util.ClasseUtilitaire;
 
@@ -21,9 +22,15 @@ public class FrontControllerServlet extends HttpServlet {
 
     private static final String CONTROLLER_PACKAGE_INIT_PARAM = "controllerPackage";
     private static final String DEFAULT_CONTROLLER_PACKAGE = "controller";
+    private static final String PREFIX_INIT_PARAM = "prefix";
+    private static final String SUFFIX_INIT_PARAM = "suffix";
+    private static final String DEFAULT_PREFIX = "/WEB-INF/views/";
+    private static final String DEFAULT_SUFFIX = ".jsp";
 
     private Map<String, Map<UrlMethod, Method>> urlMappingMap;
     private List<Class<?>> controllerClasses;
+    private String prefix;
+    private String suffix;
 
     @Override
     public void init(ServletConfig config) throws ServletException {
@@ -36,6 +43,12 @@ public class FrontControllerServlet extends HttpServlet {
         List<Class<?>> allClasses = ClasseUtilitaire.getClassesInPackage(controllerPackage);
         this.controllerClasses = ClasseUtilitaire.getAnnotatedClasses(allClasses, Controller.class);
         this.urlMappingMap = ClasseUtilitaire.getUrlMappingMap(controllerPackage);
+
+        this.prefix = config.getInitParameter(PREFIX_INIT_PARAM);
+        if (this.prefix == null) this.prefix = DEFAULT_PREFIX;
+
+        this.suffix = config.getInitParameter(SUFFIX_INIT_PARAM);
+        if (this.suffix == null) this.suffix = DEFAULT_SUFFIX;
     }
 
     @Override
@@ -92,6 +105,18 @@ public class FrontControllerServlet extends HttpServlet {
                 Class<?> controllerClass = method.getDeclaringClass();
                 Object controllerInstance = controllerClass.getDeclaredConstructor().newInstance();
                 Object result = method.invoke(controllerInstance);
+
+                if (result instanceof ModelAndView) {
+                    ModelAndView mv = (ModelAndView) result;
+                    Map<String, Object> modelData = mv.getData();
+                    for (Map.Entry<String, Object> entry : modelData.entrySet()) {
+                        req.setAttribute(entry.getKey(), entry.getValue());
+                    }
+                    String viewPath = prefix + mv.getView() + suffix;
+                    req.getRequestDispatcher(viewPath).forward(req, resp);
+                    return;
+                }
+
                 out.println("<h3>Controller->Method: " + controllerName + "->" + method.getName() + "</h3>");
                 out.println("<p>Result: " + result + "</p>");
             } catch (Exception e) {
