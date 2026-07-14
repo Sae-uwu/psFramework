@@ -83,7 +83,6 @@ public class ClasseUtilitaire {
                 try {
                     classes.add(Class.forName(className));
                 } catch (ClassNotFoundException e) {
-                    // ignore
                 }
             }
         }
@@ -102,7 +101,6 @@ public class ClasseUtilitaire {
                     try {
                         classes.add(Class.forName(className));
                     } catch (ClassNotFoundException e) {
-                        // ignore
                     }
                 }
             }

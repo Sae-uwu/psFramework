@@ -1,11 +1,12 @@
 package framework.servlet;
 
 import framework.annotations.Controller;
+import framework.listener.AppListener;
 import framework.models.ModelAndView;
 import framework.models.UrlMethod;
-import framework.util.ClasseUtilitaire;
 
 import jakarta.servlet.ServletConfig;
+import jakarta.servlet.ServletContext;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
@@ -20,8 +21,6 @@ public class FrontControllerServlet extends HttpServlet {
 
     private static final long serialVersionUID = 1L;
 
-    private static final String CONTROLLER_PACKAGE_INIT_PARAM = "controllerPackage";
-    private static final String DEFAULT_CONTROLLER_PACKAGE = "controller";
     private static final String PREFIX_INIT_PARAM = "prefix";
     private static final String SUFFIX_INIT_PARAM = "suffix";
     private static final String DEFAULT_PREFIX = "/WEB-INF/views/";
@@ -33,16 +32,13 @@ public class FrontControllerServlet extends HttpServlet {
     private String suffix;
 
     @Override
+    @SuppressWarnings("unchecked")
     public void init(ServletConfig config) throws ServletException {
         super.init(config);
-        String controllerPackage = config.getInitParameter(CONTROLLER_PACKAGE_INIT_PARAM);
-        if (controllerPackage == null || controllerPackage.isEmpty()) {
-            controllerPackage = DEFAULT_CONTROLLER_PACKAGE;
-        }
+        ServletContext ctx = config.getServletContext();
 
-        List<Class<?>> allClasses = ClasseUtilitaire.getClassesInPackage(controllerPackage);
-        this.controllerClasses = ClasseUtilitaire.getAnnotatedClasses(allClasses, Controller.class);
-        this.urlMappingMap = ClasseUtilitaire.getUrlMappingMap(controllerPackage);
+        this.controllerClasses = (List<Class<?>>) ctx.getAttribute(AppListener.CONTROLLER_CLASSES_ATTR);
+        this.urlMappingMap = (Map<String, Map<UrlMethod, Method>>) ctx.getAttribute(AppListener.URL_MAPPING_MAP_ATTR);
 
         this.prefix = config.getInitParameter(PREFIX_INIT_PARAM);
         if (this.prefix == null) this.prefix = DEFAULT_PREFIX;
@@ -66,7 +62,7 @@ public class FrontControllerServlet extends HttpServlet {
         PrintWriter out = resp.getWriter();
         out.println("<html><body>");
 
-        out.println("<h2>Controleurs trouvés dans le package</h2>");
+        out.println("<h2>Liste des controllers</h2>");
         out.println("<ul>");
         for (Class<?> clazz : controllerClasses) {
             Controller ann = clazz.getAnnotation(Controller.class);
@@ -120,12 +116,12 @@ public class FrontControllerServlet extends HttpServlet {
                 out.println("<h3>Controller->Method: " + controllerName + "->" + method.getName() + "</h3>");
                 out.println("<p>Result: " + result + "</p>");
             } catch (Exception e) {
-                out.println("<p>Error invoking controller method: " + e.getMessage() + "</p>");
+                out.println("<p>Invok KO: " + e.getMessage() + "</p>");
                 e.printStackTrace(out);
             }
         } else {
-            out.println("<h3>No mapping found for " + req.getMethod() + " " + pathInfo + "</h3>");
-            out.println("<p>Available mappings:</p>");
+            out.println("<h3>Pas de mapping trouve pour " + req.getMethod() + " " + pathInfo + "</h3>");
+            out.println("<p>Liste des mappings disponibles:</p>");
             out.println("<ul>");
             for (Map.Entry<String, Map<UrlMethod, Method>> entry : urlMappingMap.entrySet()) {
                 String ctrl = entry.getKey();
